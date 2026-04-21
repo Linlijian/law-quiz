@@ -19,17 +19,41 @@
 <body class="bg-slate-50 min-h-screen">
 
     <div id="app" class="max-w-2xl mx-auto px-4 py-8">
-        <div class="text-center mb-8">
-            <h1 class="text-3xl font-bold text-slate-800">แบบทดสอบกฎหมายอัยการ</h1>
-            <p class="text-slate-500 mt-2">สุ่มทดสอบครั้งละ 10 ข้อ</p>
+        
+        <div id="menu-ui" class="animate-pop">
+            <div class="text-center mb-10">
+                <h1 class="text-4xl font-black text-slate-800 mb-2">คลังข้อสอบอัยการ</h1>
+                <p class="text-slate-500">เลือกชุดคำถามที่ต้องการทดสอบ</p>
+            </div>
+            
+            <div id="set-list" class="space-y-4">
+                <div class="p-6 bg-white rounded-2xl shadow-sm border border-slate-200 hover:border-blue-500 cursor-pointer transition-all hover:shadow-md" onclick="loadSet('questions.json', 'ชุดที่ 1: พรบ.องค์กรอัยการ ๒๕๕๓')">
+                    <h3 class="text-xl font-bold text-slate-700">ชุดที่ 1: พรบ.องค์กรอัยการ ๒๕๕๓</h3>
+                    <p class="text-slate-400 text-sm mt-1">สุ่มครั้งละ 10 ข้อ จากคลังข้อสอบทั้งหมด</p>
+                </div>
+                
+                <div class="p-6 bg-white rounded-2xl shadow-sm border border-slate-200 hover:border-blue-500 cursor-pointer transition-all hover:shadow-md" onclick="loadSet('set2.json', 'ชุดที่ 2: ระเบียบข้าราชการฝ่ายอัยการ')">
+                    <h3 class="text-xl font-bold text-slate-700">ชุดที่ 2: ระเบียบข้าราชการฝ่ายอัยการ</h3>
+                    <p class="text-slate-400 text-sm mt-1">สุ่มครั้งละ 10 ข้อ จากคลังข้อสอบทั้งหมด</p>
+                </div>
+            </div>
         </div>
 
-        <div id="loading" class="text-center py-20">
+        <div id="loading-ui" class="hidden text-center py-20">
             <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-blue-600 border-t-transparent"></div>
-            <p class="mt-4 text-slate-600">กำลังโหลดข้อสอบ...</p>
+            <p class="mt-4 text-slate-600">กำลังเตรียมข้อสอบ...</p>
         </div>
 
         <div id="quiz-ui" class="hidden">
+            <div class="flex items-center mb-6">
+                <button onclick="location.reload()" class="mr-4 text-slate-400 hover:text-slate-600">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                    </svg>
+                </button>
+                <h2 id="current-set-title" class="text-lg font-bold text-slate-700 truncate">กำลังทำข้อสอบ...</h2>
+            </div>
+
             <div class="w-full bg-slate-200 rounded-full h-2 mb-6">
                 <div id="progress-bar" class="bg-blue-600 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
             </div>
@@ -39,12 +63,9 @@
                     <span id="q-number" class="bg-blue-100 text-blue-700 text-xs font-bold px-2.5 py-1 rounded">ข้อที่ 1/10</span>
                 </div>
                 
-                <h2 id="q-text" class="text-xl font-semibold text-slate-800 leading-relaxed mb-6">
-                    คำถามกำลังโหลด...
-                </h2>
+                <h2 id="q-text" class="text-xl font-semibold text-slate-800 leading-relaxed mb-6">คำถาม...</h2>
 
-                <div id="options-container" class="space-y-3">
-                    </div>
+                <div id="options-container" class="space-y-3"></div>
 
                 <div id="explanation-box" class="hidden mt-6 p-4 bg-emerald-50 border-l-4 border-emerald-500 rounded animate-pop">
                     <h4 class="text-emerald-800 font-bold mb-1 text-sm">เฉลย/คำอธิบาย:</h4>
@@ -53,7 +74,7 @@
             </div>
 
             <div class="flex justify-end">
-                <button id="next-btn" onclick="handleNext()" class="hidden bg-slate-800 text-white px-8 py-3 rounded-xl font-semibold hover:bg-slate-700 transition-colors shadow-lg shadow-slate-200">
+                <button id="next-btn" onclick="handleNext()" class="hidden bg-slate-800 text-white px-8 py-3 rounded-xl font-semibold hover:bg-slate-700 transition-colors shadow-lg">
                     ข้อถัดไป
                 </button>
             </div>
@@ -70,8 +91,8 @@
                 <span id="final-score">0</span><span class="text-2xl text-slate-400">/10</span>
             </div>
             <p id="feedback-msg" class="text-slate-600 mb-8 font-medium italic"></p>
-            <button onclick="location.reload()" class="w-full bg-blue-600 text-white px-8 py-4 rounded-2xl font-bold text-lg hover:bg-blue-700 transition-all transform hover:-translate-y-1">
-                ลองทำอีกครั้ง
+            <button onclick="location.reload()" class="w-full bg-blue-600 text-white px-8 py-4 rounded-2xl font-bold text-lg hover:bg-blue-700 transition-all">
+                กลับหน้าหลัก
             </button>
         </div>
     </div>
@@ -82,35 +103,38 @@
         let currentIndex = 0;
         let score = 0;
 
-        // 1. โหลดข้อมูลจาก JSON
-        async function loadData() {
+        // ฟังก์ชันเลือกชุดคำถาม
+        async function loadSet(fileName, setTitle) {
+            document.getElementById('menu-ui').classList.add('hidden');
+            document.getElementById('loading-ui').classList.remove('hidden');
+            document.getElementById('current-set-title').innerText = setTitle;
+            
             try {
-                const response = await fetch('questions.json');
-                if (!response.ok) throw new Error('โหลดไฟล์ไม่ได้');
+                const response = await fetch(fileName);
+                if (!response.ok) throw new Error('Network error');
                 allQuestions = await response.json();
                 
-                startQuiz();
+                // จำลองการโหลดเล็กน้อยเพื่อให้ UI ดูลื่นไหล
+                setTimeout(() => {
+                    document.getElementById('loading-ui').classList.add('hidden');
+                    document.getElementById('quiz-ui').classList.remove('hidden');
+                    startQuiz();
+                }, 500);
             } catch (error) {
-                document.getElementById('loading').innerHTML = `
-                    <p class="text-red-500 font-bold">เกิดข้อผิดพลาด: ไม่พบไฟล์ questions.json</p>
-                    <p class="text-slate-400 text-sm mt-2">กรุณารัน Python Script ก่อนอัปโหลด</p>
-                `;
+                alert('เกิดข้อผิดพลาด: ไม่พบไฟล์ ' + fileName);
+                location.reload();
             }
         }
 
-        // 2. เริ่มต้น Quiz
         function startQuiz() {
-            // สุ่มเลือก 10 ข้อจากทั้งหมด
             selectedQuestions = [...allQuestions]
                 .sort(() => 0.5 - Math.random())
                 .slice(0, 10);
-
-            document.getElementById('loading').classList.add('hidden');
-            document.getElementById('quiz-ui').classList.remove('hidden');
+            currentIndex = 0;
+            score = 0;
             showQuestion();
         }
 
-        // 3. แสดงคำถาม
         function showQuestion() {
             const q = selectedQuestions[currentIndex];
             const qNumDisplay = currentIndex + 1;
@@ -123,10 +147,9 @@
             container.innerHTML = '';
             
             const labels = ['ก.', 'ข.', 'ค.', 'ง.'];
-            
             q.options.forEach((opt, index) => {
                 const btn = document.createElement('button');
-                btn.className = "option-btn w-full text-left p-4 border-2 border-slate-100 rounded-xl hover:bg-slate-50 hover:border-blue-200 transition-all flex items-start group";
+                btn.className = "option-btn w-full text-left p-4 border-2 border-slate-100 rounded-xl hover:bg-slate-50 transition-all flex items-start group";
                 btn.innerHTML = `
                     <span class="w-8 h-8 flex-shrink-0 bg-slate-100 text-slate-500 rounded-lg flex items-center justify-center font-bold mr-3 group-hover:bg-blue-100 group-hover:text-blue-600 transition-colors">${labels[index]}</span>
                     <span class="text-slate-700 font-medium pt-1">${opt}</span>
@@ -139,7 +162,6 @@
             document.getElementById('next-btn').classList.add('hidden');
         }
 
-        // 4. ตรวจคำตอบ
         function checkAnswer(selectedIndex, clickedBtn) {
             const q = selectedQuestions[currentIndex];
             const correctIndex = q.answer;
@@ -148,36 +170,23 @@
             buttons.forEach(btn => btn.disabled = true);
 
             if (selectedIndex === correctIndex) {
-                // ตอบถูก
                 clickedBtn.classList.replace('border-slate-100', 'border-emerald-500');
                 clickedBtn.classList.add('bg-emerald-50');
-                clickedBtn.querySelector('span').classList.replace('bg-slate-100', 'bg-emerald-500');
-                clickedBtn.querySelector('span').classList.replace('text-slate-500', 'text-white');
                 score++;
             } else {
-                // ตอบผิด
                 clickedBtn.classList.replace('border-slate-100', 'border-red-500');
                 clickedBtn.classList.add('bg-red-50');
-                clickedBtn.querySelector('span').classList.replace('bg-slate-100', 'bg-red-500');
-                clickedBtn.querySelector('span').classList.replace('text-slate-500', 'text-white');
-
-                // แสดงข้อที่ถูกด้วย
-                const correctBtn = buttons[correctIndex];
-                correctBtn.classList.replace('border-slate-100', 'border-emerald-500');
-                correctBtn.classList.add('bg-emerald-50');
+                buttons[correctIndex].classList.replace('border-slate-100', 'border-emerald-500');
+                buttons[correctIndex].classList.add('bg-emerald-50');
             }
 
-            // แสดงคำอธิบาย (ถ้ามีใน JSON)
-            if (q.explanation || q.options[correctIndex]) {
-                const desc = q.explanation ? q.explanation : `คำตอบที่ถูกต้องคือข้อ ${['ก','ข','ค','ง'][correctIndex]}. ${q.options[correctIndex]}`;
-                document.getElementById('explanation-text').innerText = desc;
-                document.getElementById('explanation-box').classList.remove('hidden');
-            }
-
+            // แสดงคำอธิบาย
+            const desc = q.explanation ? q.explanation : `เฉลยคือข้อ ${['ก','ข','ค','ง'][correctIndex]}`;
+            document.getElementById('explanation-text').innerText = desc;
+            document.getElementById('explanation-box').classList.remove('hidden');
             document.getElementById('next-btn').classList.remove('hidden');
         }
 
-        // 5. เปลี่ยนข้อ
         function handleNext() {
             currentIndex++;
             if (currentIndex < 10) {
@@ -187,22 +196,14 @@
             }
         }
 
-        // 6. หน้าสรุปคะแนน
         function showResult() {
             document.getElementById('quiz-ui').classList.add('hidden');
             document.getElementById('result-ui').classList.remove('hidden');
             document.getElementById('final-score').innerText = score;
-
-            let msg = "";
-            if (score === 10) msg = "ยอดเยี่ยมมาก! คุณจำกฎหมายได้แม่นยำที่สุด";
-            else if (score >= 7) msg = "เก่งมาก! อีกนิดเดียวจะเต็มแล้ว";
-            else if (score >= 5) msg = "ผ่านเกณฑ์! ควรทบทวนจุดที่ผิดบ่อยๆ นะครับ";
-            else msg = "พยายามต่อไปครับ การฝึกฝนจะทำให้คุณเก่งขึ้น";
+            
+            let msg = score >= 8 ? "เก่งมาก!" : score >= 5 ? "ผ่านเกณฑ์" : "ควรทบทวนเพิ่มเติม";
             document.getElementById('feedback-msg').innerText = msg;
         }
-
-        // เริ่มโหลดข้อมูลเมื่อเปิดหน้าเว็บ
-        loadData();
     </script>
 </body>
 </html>
