@@ -6,6 +6,7 @@
     <title>ระบบคลังข้อสอบกฎหมายอัยการ</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <style>
         /* Credit Bar Styling */
         .credit-bar {
@@ -77,7 +78,12 @@
             <div id="history-section" class="hidden bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
                 <div class="flex justify-between items-center mb-4">
                     <h2 class="text-lg font-bold text-slate-800">📜 ประวัติการทำข้อสอบ</h2>
-                    <button onclick="window.print()" class="text-sm bg-slate-100 px-3 py-1 rounded hover:bg-slate-200">พิมพ์ PDF</button>
+                    <div class="flex gap-2">
+                        <button onclick="exportToExcel()" class="text-sm bg-emerald-100 text-emerald-700 px-3 py-1 rounded-lg hover:bg-emerald-200 font-bold flex items-center gap-1">
+                            📊 Export Excel
+                        </button>
+                        <button onclick="window.print()" class="text-sm bg-slate-100 px-3 py-1 rounded-lg hover:bg-slate-200">พิมพ์ PDF</button>
+                    </div>
                 </div>
                 <div id="history-list" class="space-y-2 text-sm"></div>
             </div>
@@ -265,6 +271,49 @@
                     <div class="font-bold ${h.status.includes('ถูก') ? 'text-emerald-500' : 'text-red-500'}">${h.status}</div>
                 </div>
             `).join('');
+        }
+
+        function exportToExcel() {
+            const history = JSON.parse(localStorage.getItem('quiz_history') || '[]');
+            
+            if (history.length === 0) {
+                alert("ไม่มีข้อมูลประวัติสำหรับส่งออก");
+                return;
+            }
+        
+            // จัดรูปแบบข้อมูลใหม่สำหรับ Excel
+            const dataForExcel = history.map((item, index) => ({
+                "ลำดับ": history.length - index,
+                "วันที่-เวลา": item.date,
+                "ชุดข้อสอบ": item.set,
+                "ชุดย่อย/โหมด": item.sub,
+                "คำถาม": item.q,
+                "ผลลัพธ์": item.status.includes('ถูก') ? 'ถูกต้อง' : 'ผิด',
+            }));
+        
+            // สร้าง Worksheet
+            const worksheet = XLSX.utils.json_to_sheet(dataForExcel);
+            
+            // ตั้งค่าความกว้างของคอลัมน์ (ประมาณการ)
+            const wscols = [
+                {wch: 6},  // ลำดับ
+                {wch: 20}, // วันที่
+                {wch: 35}, // ชุดข้อสอบ
+                {wch: 15}, // ชุดย่อย
+                {wch: 60}, // คำถาม
+                {wch: 10}  // ผลลัพธ์
+            ];
+            worksheet['!cols'] = wscols;
+        
+            // สร้าง Workbook
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "ประวัติการทำข้อสอบ");
+        
+            // สร้างชื่อไฟล์ตามวันที่ปัจจุบัน
+            const fileName = `สรุปคะแนน_ชายกลัวดอกพิกุล_${new Date().getTime()}.xlsx`;
+        
+            // ดาวน์โหลดไฟล์
+            XLSX.writeFile(workbook, fileName);
         }
 
         function backToMain() { location.reload(); }
