@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="th">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,247 +7,268 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
-        body {
+        /* Credit Bar Styling */
+        .credit-bar {
+            background: linear-gradient(90deg, #0f172a 0%, #1e293b 100%);
+            color: #f8fafc;
+            padding: 10px 0;
+            border-bottom: 2px solid #3b82f6;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        .credit-name {
             font-family: 'Sarabun', sans-serif;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            font-weight: 800;
+            background: linear-gradient(to right, #60a5fa, #a855f7, #60a5fa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-size: 200% auto;
+            animation: shine 3s linear infinite;
         }
-
-        .option-btn:disabled {
-            cursor: not-allowed;
+        @keyframes shine {
+            to { background-position: 200% center; }
         }
-
-        .animate-pop {
-            animation: pop 0.3s ease-out;
+        .motto {
+            font-size: 0.65rem;
+            color: #94a3b8;
+            letter-spacing: 1px;
         }
-
-        @keyframes pop {
-            0% {
-                transform: scale(0.95);
-                opacity: 0;
-            }
-
-            100% {
-                transform: scale(1);
-                opacity: 1;
-            }
-        }
+        body { font-family: 'Sarabun', sans-serif; }
+        .animate-pop { animation: pop 0.3s ease-out; }
+        @keyframes pop { 0% { transform: scale(0.95); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+        @media print { .no-print { display: none; } }
     </style>
 </head>
-
 <body class="bg-slate-50 min-h-screen">
 
+    <div class="credit-bar no-print">
+    <div class="max-w-2xl mx-auto px-4 flex justify-between items-center">
+        <div class="flex flex-col">
+            <span class="credit-name text-sm">ชายกลัวดอกพิกุล</span>
+            <span class="motto">PRECISION & LEGAL EXCELLENCE</span>
+        </div>
+        <div class="flex items-center space-x-2">
+            <span class="h-2 w-2 bg-emerald-500 rounded-full animate-pulse"></span>
+            <span class="text-[10px] text-slate-400 font-mono">SYSTEM ACTIVE v2.0</span>
+        </div>
+    </div>
+</div>
+
     <div id="app" class="max-w-2xl mx-auto px-4 py-8">
+        
+        <div class="text-center mb-8 no-print">
+            <h1 class="text-3xl font-black text-slate-800">ระบบคลังข้อสอบอัยการ</h1>
+            <p class="text-slate-500">เลือกโหมดการทดสอบเพื่อเริ่มต้น</p>
+        </div>
 
-        <div id="menu-ui" class="animate-pop">
-            <div class="text-center mb-10">
-                <h1 class="text-4xl font-black text-slate-800 mb-2">คลังข้อสอบอัยการ</h1>
-                <p class="text-slate-500">เลือกชุดคำถามที่ต้องการทดสอบ</p>
+        <div id="menu-ui" class="space-y-6 animate-pop">
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                <h2 class="text-lg font-bold mb-4 text-blue-600">📂 เลือกชุดข้อสอบ</h2>
+                <div id="set-list" class="grid grid-cols-1 gap-3">
+                    </div>
             </div>
-
-            <div id="set-list" class="space-y-4">
+            <br/>
+            <br/>
+            <br/>
+            <div id="history-section" class="hidden bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-lg font-bold text-slate-800">📜 ประวัติการทำข้อสอบ</h2>
+                    <button onclick="window.print()" class="text-sm bg-slate-100 px-3 py-1 rounded hover:bg-slate-200">พิมพ์ PDF</button>
+                </div>
+                <div id="history-list" class="space-y-2 text-sm"></div>
             </div>
         </div>
 
-        <div id="loading-ui" class="hidden text-center py-20">
-            <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-blue-600 border-t-transparent">
-            </div>
-            <p class="mt-4 text-slate-600">กำลังเตรียมข้อสอบ...</p>
-        </div>
-
-        <div id="quiz-ui" class="hidden">
-            <div class="flex items-center mb-6">
-                <button onclick="location.reload()" class="mr-4 text-slate-400 hover:text-slate-600">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
-                        stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-                    </svg>
-                </button>
-                <h2 id="current-set-title" class="text-lg font-bold text-slate-700 truncate">กำลังทำข้อสอบ...</h2>
-            </div>
-
-            <div class="w-full bg-slate-200 rounded-full h-2 mb-6">
-                <div id="progress-bar" class="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                    style="width: 0%"></div>
-            </div>
-
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-6">
-                <div class="flex justify-between items-start mb-4">
-                    <span id="q-number" class="bg-blue-100 text-blue-700 text-xs font-bold px-2.5 py-1 rounded">ข้อที่
-                        1/10</span>
-                </div>
-
-                <h2 id="q-text" class="text-xl font-semibold text-slate-800 leading-relaxed mb-6">คำถาม...</h2>
-
-                <div id="options-container" class="space-y-3"></div>
-
-                <div id="explanation-box"
-                    class="hidden mt-6 p-4 bg-emerald-50 border-l-4 border-emerald-500 rounded animate-pop">
-                    <h4 class="text-emerald-800 font-bold mb-1 text-sm">เฉลย/คำอธิบาย:</h4>
-                    <p id="explanation-text" class="text-emerald-700 text-sm"></p>
-                </div>
-            </div>
-
-            <div class="flex justify-end">
-                <button id="next-btn" onclick="handleNext()"
-                    class="hidden bg-slate-800 text-white px-8 py-3 rounded-xl font-semibold hover:bg-slate-700 transition-colors shadow-lg">
-                    ข้อถัดไป
-                </button>
-            </div>
-        </div>
-
-        <div id="result-ui"
-            class="hidden bg-white rounded-3xl shadow-xl p-10 text-center border border-slate-100 animate-pop">
-            <div class="mb-6">
-                <div class="inline-flex items-center justify-center w-20 h-20 bg-blue-100 rounded-full mb-4">
-                    <span class="text-3xl">🏆</span>
-                </div>
-                <h2 class="text-3xl font-bold text-slate-800">สรุปคะแนน</h2>
-            </div>
-            <div class="text-6xl font-black text-blue-600 mb-4">
-                <span id="final-score">0</span><span class="text-2xl text-slate-400">/10</span>
-            </div>
-            <p id="feedback-msg" class="text-slate-600 mb-8 font-medium italic"></p>
-            <button onclick="location.reload()"
-                class="w-full bg-blue-600 text-white px-8 py-4 rounded-2xl font-bold text-lg hover:bg-blue-700 transition-all">
-                กลับหน้าหลัก
+        <div id="sub-menu-ui" class="hidden animate-pop space-y-4">
+            <button onclick="backToMain()" class="text-slate-400 hover:text-slate-600 flex items-center gap-1 mb-4">
+                ← กลับหน้าหลัก
             </button>
+            <h2 id="selected-title" class="text-xl font-bold text-slate-800"></h2>
+            
+            <div class="grid grid-cols-1 gap-3">
+                <div onclick="startQuiz('random')" class="p-5 bg-blue-600 text-white rounded-xl cursor-pointer hover:bg-blue-700 transition-all shadow-lg">
+                    <h3 class="font-bold">โหมดสุ่ม 10 ข้อ</h3>
+                    <p class="text-blue-100 text-xs">ระบบจะสุ่มข้อสอบจากทั้งชุดมาให้</p>
+                </div>
+                
+                <div class="p-5 bg-white border border-slate-200 rounded-xl">
+                    <h3 class="font-bold text-slate-700 mb-3">ทำตามลำดับ (ชุดละ 10 ข้อ)</h3>
+                    <div id="sub-sets" class="grid grid-cols-4 gap-2"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="quiz-ui" class="hidden no-print">
+            <div class="flex justify-between items-center mb-4">
+                <span id="q-number" class="text-xs font-bold text-blue-600">ข้อที่ 1/10</span>
+                <button onclick="location.reload()" class="text-xs text-slate-400">ยกเลิก</button>
+            </div>
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-6">
+                <h2 id="q-text" class="text-xl font-semibold text-slate-800 mb-6"></h2>
+                <div id="options-container" class="space-y-3"></div>
+                <div id="explanation-box" class="hidden mt-6 p-4 bg-emerald-50 border-l-4 border-emerald-500 rounded text-sm">
+                    <p id="explanation-text" class="text-emerald-700"></p>
+                </div>
+            </div>
+            <div class="flex justify-end">
+                <button id="next-btn" onclick="handleNext()" class="hidden bg-slate-800 text-white px-8 py-3 rounded-xl font-bold">ข้อถัดไป</button>
+            </div>
+        </div>
+
+        <div id="result-ui" class="hidden text-center animate-pop">
+            <h2 class="text-3xl font-black text-slate-800 mb-2">จบการทดสอบ!</h2>
+            <div class="text-5xl font-black text-blue-600 mb-8"><span id="final-score">0</span>/10</div>
+            <button onclick="location.reload()" class="w-full bg-blue-600 text-white py-4 rounded-2xl font-bold">กลับหน้าหลัก</button>
         </div>
     </div>
 
     <script>
-        let allQuestions = [];
-        let selectedQuestions = [];
+        let allData = []; // ข้อสอบทั้งหมดในชุดที่เลือก
+        let currentQuizSet = []; // 10 ข้อที่กำลังทำ
         let currentIndex = 0;
         let score = 0;
+        let currentInfo = { title: "", file: "", type: "" };
 
-        // ฟังก์ชันเลือกชุดคำถาม
-        async function loadSet(fileName, setTitle) {
-            document.getElementById('menu-ui').classList.add('hidden');
-            document.getElementById('loading-ui').classList.remove('hidden');
-            document.getElementById('current-set-title').innerText = setTitle;
-
+        // โหลดรายการจาก sets.json
+        async function initMenu() {
             try {
-                const response = await fetch(fileName);
-                if (!response.ok) throw new Error('Network error');
-                allQuestions = await response.json();
+                const res = await fetch('sets.json');
+                const sets = await res.json();
+                const list = document.getElementById('set-list');
+                sets.forEach(s => {
+                    const div = document.createElement('div');
+                    div.className = "p-4 border border-slate-100 rounded-xl hover:bg-blue-50 cursor-pointer flex justify-between items-center transition-all";
+                    div.onclick = () => showSubMenu(s);
+                    div.innerHTML = `<div><div class="font-bold text-slate-700">${s.title}</div><div class="text-xs text-slate-400">${s.file}</div></div> <span>→</span>`;
+                    list.appendChild(div);
+                });
+                loadHistory();
+            } catch (e) { console.error(e); }
+        }
 
-                // จำลองการโหลดเล็กน้อยเพื่อให้ UI ดูลื่นไหล
-                setTimeout(() => {
-                    document.getElementById('loading-ui').classList.add('hidden');
-                    document.getElementById('quiz-ui').classList.remove('hidden');
-                    startQuiz();
-                }, 500);
-            } catch (error) {
-                alert('เกิดข้อผิดพลาด: ไม่พบไฟล์ ' + fileName);
-                location.reload();
+        // แสดงโหมดย่อย (สุ่ม / เลือกชุด)
+        async function showSubMenu(set) {
+            currentInfo.title = set.title;
+            currentInfo.file = set.file;
+            document.getElementById('menu-ui').classList.add('hidden');
+            document.getElementById('sub-menu-ui').classList.remove('hidden');
+            document.getElementById('selected-title').innerText = set.title;
+
+            const res = await fetch(set.file);
+            allData = await res.json();
+
+            // แบ่งชุดละ 10 ข้อ
+            const subSetsDiv = document.getElementById('sub-sets');
+            subSetsDiv.innerHTML = '';
+            const totalSubSets = Math.ceil(allData.length / 10);
+            for (let i = 0; i < totalSubSets; i++) {
+                const btn = document.createElement('button');
+                btn.className = "p-2 bg-slate-100 rounded-lg text-sm hover:bg-slate-200 font-bold text-slate-600";
+                btn.innerText = i + 1;
+                btn.onclick = () => startQuiz('serial', i);
+                subSetsDiv.appendChild(btn);
             }
         }
 
-        function startQuiz() {
-            selectedQuestions = [...allQuestions]
-                .sort(() => 0.5 - Math.random())
-                .slice(0, 10);
-            currentIndex = 0;
-            score = 0;
+        function startQuiz(type, pageIndex = 0) {
+            currentInfo.type = type === 'random' ? 'สุ่ม' : `ชุดย่อยที่ ${pageIndex + 1}`;
+            if (type === 'random') {
+                currentQuizSet = [...allData].sort(() => 0.5 - Math.random()).slice(0, 10);
+            } else {
+                currentQuizSet = allData.slice(pageIndex * 10, (pageIndex * 10) + 10);
+            }
+            
+            currentIndex = 0; score = 0;
+            document.getElementById('sub-menu-ui').classList.add('hidden');
+            document.getElementById('quiz-ui').classList.remove('hidden');
             showQuestion();
         }
 
         function showQuestion() {
-            const q = selectedQuestions[currentIndex];
-            const qNumDisplay = currentIndex + 1;
-
-            document.getElementById('q-number').innerText = `ข้อที่ ${qNumDisplay}/10`;
+            const q = currentQuizSet[currentIndex];
+            document.getElementById('q-number').innerText = `ข้อที่ ${currentIndex + 1}/10 (${currentInfo.type})`;
             document.getElementById('q-text').innerText = q.question;
-            document.getElementById('progress-bar').style.width = `${(qNumDisplay / 10) * 100}%`;
-
             const container = document.getElementById('options-container');
             container.innerHTML = '';
-
-            const labels = ['ก.', 'ข.', 'ค.', 'ง.'];
-            q.options.forEach((opt, index) => {
+            
+            ['ก.', 'ข.', 'ค.', 'ง.'].forEach((label, i) => {
                 const btn = document.createElement('button');
-                btn.className = "option-btn w-full text-left p-4 border-2 border-slate-100 rounded-xl hover:bg-slate-50 transition-all flex items-start group";
-                btn.innerHTML = `
-                    <span class="w-8 h-8 flex-shrink-0 bg-slate-100 text-slate-500 rounded-lg flex items-center justify-center font-bold mr-3 group-hover:bg-blue-100 group-hover:text-blue-600 transition-colors">${labels[index]}</span>
-                    <span class="text-slate-700 font-medium pt-1">${opt}</span>
-                `;
-                btn.onclick = () => checkAnswer(index, btn);
+                btn.className = "option-btn w-full text-left p-4 border border-slate-200 rounded-xl hover:bg-slate-50 flex items-start";
+                btn.innerHTML = `<span class="font-bold mr-3">${label}</span><span>${q.options[i]}</span>`;
+                btn.onclick = () => checkAnswer(i, btn);
                 container.appendChild(btn);
             });
-
             document.getElementById('explanation-box').classList.add('hidden');
             document.getElementById('next-btn').classList.add('hidden');
         }
 
-        function checkAnswer(selectedIndex, clickedBtn) {
-            const q = selectedQuestions[currentIndex];
-            const correctIndex = q.answer;
+        function checkAnswer(idx, btn) {
+            const q = currentQuizSet[currentIndex];
+            const isCorrect = idx === q.answer;
             const buttons = document.querySelectorAll('.option-btn');
+            buttons.forEach(b => b.disabled = true);
 
-            buttons.forEach(btn => btn.disabled = true);
-
-            if (selectedIndex === correctIndex) {
-                clickedBtn.classList.replace('border-slate-100', 'border-emerald-500');
-                clickedBtn.classList.add('bg-emerald-50');
+            if (isCorrect) {
+                btn.classList.add('bg-emerald-50', 'border-emerald-500', 'text-emerald-700');
                 score++;
             } else {
-                clickedBtn.classList.replace('border-slate-100', 'border-red-500');
-                clickedBtn.classList.add('bg-red-50');
-                buttons[correctIndex].classList.replace('border-slate-100', 'border-emerald-500');
-                buttons[correctIndex].classList.add('bg-emerald-50');
+                btn.classList.add('bg-red-50', 'border-red-500', 'text-red-700');
+                buttons[q.answer].classList.add('bg-emerald-50', 'border-emerald-500');
             }
 
-            // แสดงคำอธิบาย
-            const desc = q.explanation ? q.explanation : `เฉลยคือข้อ ${['ก', 'ข', 'ค', 'ง'][correctIndex]}`;
-            document.getElementById('explanation-text').innerText = desc;
+            saveHistory(q.question, isCorrect);
+            document.getElementById('explanation-text').innerText = q.explanation || "ไม่มีคำอธิบาย";
             document.getElementById('explanation-box').classList.remove('hidden');
             document.getElementById('next-btn').classList.remove('hidden');
         }
 
         function handleNext() {
             currentIndex++;
-            if (currentIndex < 10) {
-                showQuestion();
-            } else {
-                showResult();
-            }
+            if (currentIndex < currentQuizSet.length) showQuestion();
+            else showResult();
         }
 
         function showResult() {
             document.getElementById('quiz-ui').classList.add('hidden');
             document.getElementById('result-ui').classList.remove('hidden');
             document.getElementById('final-score').innerText = score;
-
-            let msg = score >= 8 ? "เก่งมาก!" : score >= 5 ? "ผ่านเกณฑ์" : "ควรทบทวนเพิ่มเติม";
-            document.getElementById('feedback-msg').innerText = msg;
         }
 
-        // ฟังก์ชันโหลดรายการชุดข้อสอบจาก sets.json
-        async function loadMenu() {
-            try {
-                const response = await fetch('sets.json');
-                const sets = await response.json();
-
-                const setList = document.getElementById('set-list');
-                setList.innerHTML = ''; // ล้างค่าเก่า
-
-                sets.forEach(set => {
-                    const card = document.createElement('div');
-                    card.className = "p-6 bg-white rounded-2xl shadow-sm border border-slate-200 hover:border-blue-500 cursor-pointer transition-all hover:shadow-md animate-pop";
-                    card.onclick = () => loadSet(set.file, set.title);
-                    card.innerHTML = `
-                <h3 class="text-xl font-bold text-slate-700">${set.title}</h3>
-                <p class="text-slate-400 text-sm mt-1">กดเพื่อเริ่มทำแบบทดสอบ (สุ่ม 10 ข้อ)</p>
-            `;
-                    setList.appendChild(card);
-                });
-            } catch (error) {
-                console.error("ไม่สามารถโหลดรายการชุดข้อสอบได้", error);
-            }
+        // ระบบประวัติ
+        function saveHistory(qText, isCorrect) {
+            let history = JSON.parse(localStorage.getItem('quiz_history') || '[]');
+            history.unshift({
+                set: currentInfo.title,
+                sub: currentInfo.type,
+                q: qText,
+                status: isCorrect ? '✅ ถูก' : '❌ ผิด',
+                date: new Date().toLocaleString('th-TH')
+            });
+            localStorage.setItem('quiz_history', JSON.stringify(history.slice(0, 50))); // เก็บ 50 รายการล่าสุด
         }
 
-        // เรียกใช้งานฟังก์ชันโหลดเมนูเมื่อเปิดหน้าเว็บ
-        window.onload = loadMenu;
+        function loadHistory() {
+            const history = JSON.parse(localStorage.getItem('quiz_history') || '[]');
+            if (history.length === 0) return;
+            document.getElementById('history-section').classList.remove('hidden');
+            const list = document.getElementById('history-list');
+            list.innerHTML = history.map(h => `
+                <div class="p-3 border-b border-slate-100 flex justify-between items-start gap-4">
+                    <div class="flex-1">
+                        <div class="text-[10px] text-slate-400">${h.set} (${h.sub}) - ${h.date}</div>
+                        <div class="font-medium text-slate-700">${h.q}</div>
+                    </div>
+                    <div class="font-bold ${h.status.includes('ถูก') ? 'text-emerald-500' : 'text-red-500'}">${h.status}</div>
+                </div>
+            `).join('');
+        }
+
+        function backToMain() { location.reload(); }
+        window.onload = initMenu;
     </script>
 </body>
-
 </html>
