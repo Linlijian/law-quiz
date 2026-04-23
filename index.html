@@ -1,13 +1,122 @@
 <!DOCTYPE html>
 <html lang="th">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ระบบคลังข้อสอบกฎหมายอัยการ</title>
+
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.dataTables.min.css">
+
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
+
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <style>
+        /* บังคับให้ตารางอยู่ในขอบเขตของ Parent */
+        #history-table {
+            width: 100% !important;
+            margin: 0 !important;
+            /* ลบ margin ที่ DataTables ชอบเติมมาเอง */
+        }
+
+        /* จัดการเซลล์ไม่ให้ชิดขอบจอ */
+        #history-table td,
+        #history-table th {
+            padding: 12px 16px !important;
+            white-space: normal !important;
+            /* ยอมให้ขึ้นบรรทัดใหม่ */
+            word-break: break-word;
+            /* ตัดคำถ้าคำยาวเกิน */
+        }
+
+        /* ปรับแต่งความสวยงามของ DataTable Wrapper */
+        .dataTables_wrapper {
+            padding: 0.5rem 0;
+        }
+
+        /* แก้ไขปุ่มขยายในมือถือ (Responsive Control) ไม่ให้เบียดขอบ */
+        table.dataTable.dtr-inline.collapsed>tbody>tr>td.dtr-control {
+            padding-left: 35px !important;
+        }
+
+        /* ล้างสไตล์เดิมเพื่อให้เข้ากับ Tailwind */
+        #history-table_wrapper .dataTables_length,
+        #history-table_wrapper .dataTables_filter {
+            margin-bottom: 1rem;
+            font-size: 0.875rem;
+        }
+
+        /* Custom Padding ให้ Cell */
+        table.dataTable tbody th,
+        table.dataTable tbody td {
+            padding: 12px 16px !important;
+        }
+
+        /* ปรับแต่ง Responsive Card สำหรับมือถือ */
+        @media screen and (max-width: 640px) {
+            table.dataTable.dtr-inline.collapsed>tbody>tr>td.dtr-control {
+                padding-left: 30px !important;
+            }
+
+            /* ทำให้ DataTable ดูเหมือน Card มากขึ้น */
+            .dtr-details {
+                width: 100%;
+                display: block;
+            }
+
+            .dtr-data {
+                white-space: normal !important;
+                display: block;
+                margin-top: 5px;
+                color: #475569;
+            }
+        }
+
+        /* Badge สวยๆ ในตาราง */
+        .status-badge {
+            padding: 4px 10px;
+            border-radius: 9999px;
+            font-weight: bold;
+            font-size: 10px;
+        }
+
+        /* Badge คะแนนบนปุ่มเลขชุด */
+        .subset-btn {
+            position: relative;
+            transition: all 0.2s;
+        }
+
+        .score-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #ef4444;
+            /* สีแดงสำหรับคนได้น้อย */
+            color: white;
+            font-size: 10px;
+            padding: 2px 5px;
+            border-radius: 10px;
+            border: 2px solid white;
+        }
+
+        .score-badge.passed {
+            background: #10b981;
+            /* สีเขียวสำหรับคนผ่าน (5 คะแนนขึ้นไป) */
+        }
+
+        /* ปรับปรุง DataTable ให้รองรับมือถือ */
+        .history-container {
+            width: 100%;
+            overflow-x: auto;
+            /* เลื่อนซ้ายขวาได้ในมือถือ */
+            -webkit-overflow-scrolling: touch;
+        }
+
         /* Credit Bar Styling */
         .credit-bar {
             background: linear-gradient(90deg, #0f172a 0%, #1e293b 100%);
@@ -19,6 +128,7 @@
             z-index: 1000;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         }
+
         .credit-name {
             font-family: 'Sarabun', sans-serif;
             letter-spacing: 2px;
@@ -30,37 +140,64 @@
             background-size: 200% auto;
             animation: shine 3s linear infinite;
         }
+
         @keyframes shine {
-            to { background-position: 200% center; }
+            to {
+                background-position: 200% center;
+            }
         }
+
         .motto {
             font-size: 0.65rem;
             color: #94a3b8;
             letter-spacing: 1px;
         }
-        body { font-family: 'Sarabun', sans-serif; }
-        .animate-pop { animation: pop 0.3s ease-out; }
-        @keyframes pop { 0% { transform: scale(0.95); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
-        @media print { .no-print { display: none; } }
+
+        body {
+            font-family: 'Sarabun', sans-serif;
+        }
+
+        .animate-pop {
+            animation: pop 0.3s ease-out;
+        }
+
+        @keyframes pop {
+            0% {
+                transform: scale(0.95);
+                opacity: 0;
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        @media print {
+            .no-print {
+                display: none;
+            }
+        }
     </style>
 </head>
+
 <body class="bg-slate-50 min-h-screen">
 
     <div class="credit-bar no-print">
-    <div class="max-w-2xl mx-auto px-4 flex justify-between items-center">
-        <div class="flex flex-col">
-            <span class="credit-name text-sm">ชายกลัวดอกพิกุล</span>
-            <span class="motto">PRECISION & LEGAL EXCELLENCE</span>
-        </div>
-        <div class="flex items-center space-x-2">
-            <span class="h-2 w-2 bg-emerald-500 rounded-full animate-pulse"></span>
-            <span class="text-[10px] text-slate-400 font-mono">SYSTEM ACTIVE v2.0</span>
+        <div class="max-w-2xl mx-auto px-4 flex justify-between items-center">
+            <div class="flex flex-col">
+                <span class="credit-name text-sm">ชายกลัวดอกพิกุล</span>
+                <span class="motto">PRECISION & LEGAL EXCELLENCE</span>
+            </div>
+            <div class="flex items-center space-x-2">
+                <span class="h-2 w-2 bg-emerald-500 rounded-full animate-pulse"></span>
+                <span class="text-[10px] text-slate-400 font-mono">SYSTEM ACTIVE v2.0</span>
+            </div>
         </div>
     </div>
-</div>
 
     <div id="app" class="max-w-2xl mx-auto px-4 py-8">
-        
+
         <div class="text-center mb-8 no-print">
             <h1 class="text-3xl font-black text-slate-800">ระบบคลังข้อสอบอัยการ</h1>
             <p class="text-slate-500">เลือกโหมดการทดสอบเพื่อเริ่มต้น</p>
@@ -70,19 +207,21 @@
             <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
                 <h2 class="text-lg font-bold mb-4 text-blue-600">📂 เลือกชุดข้อสอบ</h2>
                 <div id="set-list" class="grid grid-cols-1 gap-3">
-                    </div>
+                </div>
             </div>
-            <br/>
-            <br/>
-            <br/>
+            <br />
+            <br />
+            <br />
             <div id="history-section" class="hidden bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
                 <div class="flex justify-between items-center mb-4">
                     <h2 class="text-lg font-bold text-slate-800">📜 ประวัติการทำข้อสอบ</h2>
                     <div class="flex gap-2">
-                        <button onclick="exportToExcel()" class="text-sm bg-emerald-100 text-emerald-700 px-3 py-1 rounded-lg hover:bg-emerald-200 font-bold flex items-center gap-1">
+                        <button onclick="exportToExcel()"
+                            class="text-sm bg-emerald-100 text-emerald-700 px-3 py-1 rounded-lg hover:bg-emerald-200 font-bold flex items-center gap-1">
                             📊 Export Excel
                         </button>
-                        <button onclick="window.print()" class="text-sm bg-slate-100 px-3 py-1 rounded-lg hover:bg-slate-200">พิมพ์ PDF</button>
+                        <button onclick="window.print()"
+                            class="text-sm bg-slate-100 px-3 py-1 rounded-lg hover:bg-slate-200">พิมพ์ PDF</button>
                     </div>
                 </div>
                 <div id="history-list" class="space-y-2 text-sm"></div>
@@ -94,13 +233,14 @@
                 ← กลับหน้าหลัก
             </button>
             <h2 id="selected-title" class="text-xl font-bold text-slate-800"></h2>
-            
+
             <div class="grid grid-cols-1 gap-3">
-                <div onclick="startQuiz('random')" class="p-5 bg-blue-600 text-white rounded-xl cursor-pointer hover:bg-blue-700 transition-all shadow-lg">
+                <div onclick="startQuiz('random')"
+                    class="p-5 bg-blue-600 text-white rounded-xl cursor-pointer hover:bg-blue-700 transition-all shadow-lg">
                     <h3 class="font-bold">โหมดสุ่ม 10 ข้อ</h3>
                     <p class="text-blue-100 text-xs">ระบบจะสุ่มข้อสอบจากทั้งชุดมาให้</p>
                 </div>
-                
+
                 <div class="p-5 bg-white border border-slate-200 rounded-xl">
                     <h3 class="font-bold text-slate-700 mb-3">ทำตามลำดับ (ชุดละ 10 ข้อ)</h3>
                     <div id="sub-sets" class="grid grid-cols-4 gap-2"></div>
@@ -116,19 +256,22 @@
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-6">
                 <h2 id="q-text" class="text-xl font-semibold text-slate-800 mb-6"></h2>
                 <div id="options-container" class="space-y-3"></div>
-                <div id="explanation-box" class="hidden mt-6 p-4 bg-emerald-50 border-l-4 border-emerald-500 rounded text-sm">
+                <div id="explanation-box"
+                    class="hidden mt-6 p-4 bg-emerald-50 border-l-4 border-emerald-500 rounded text-sm">
                     <p id="explanation-text" class="text-emerald-700"></p>
                 </div>
             </div>
             <div class="flex justify-end">
-                <button id="next-btn" onclick="handleNext()" class="hidden bg-slate-800 text-white px-8 py-3 rounded-xl font-bold">ข้อถัดไป</button>
+                <button id="next-btn" onclick="handleNext()"
+                    class="hidden bg-slate-800 text-white px-8 py-3 rounded-xl font-bold">ข้อถัดไป</button>
             </div>
         </div>
 
         <div id="result-ui" class="hidden text-center animate-pop">
             <h2 class="text-3xl font-black text-slate-800 mb-2">จบการทดสอบ!</h2>
             <div class="text-5xl font-black text-blue-600 mb-8"><span id="final-score">0</span>/10</div>
-            <button onclick="location.reload()" class="w-full bg-blue-600 text-white py-4 rounded-2xl font-bold">กลับหน้าหลัก</button>
+            <button onclick="location.reload()"
+                class="w-full bg-blue-600 text-white py-4 rounded-2xl font-bold">กลับหน้าหลัก</button>
         </div>
     </div>
 
@@ -167,15 +310,32 @@
             const res = await fetch(set.file);
             allData = await res.json();
 
-            // แบ่งชุดละ 10 ข้อ
+            // ดึงคะแนนสะสมจาก LocalStorage
+            const savedScores = JSON.parse(localStorage.getItem('quiz_scores') || '{}');
+
             const subSetsDiv = document.getElementById('sub-sets');
             subSetsDiv.innerHTML = '';
             const totalSubSets = Math.ceil(allData.length / 10);
+
             for (let i = 0; i < totalSubSets; i++) {
                 const btn = document.createElement('button');
-                btn.className = "p-2 bg-slate-100 rounded-lg text-sm hover:bg-slate-200 font-bold text-slate-600";
-                btn.innerText = i + 1;
-                btn.onclick = () => startQuiz('serial', i);
+                // สร้าง Unique ID สำหรับชุดนี้ เช่น "ชุดที่ 1-ชุดย่อย 1"
+                const setKey = `${currentInfo.title}-sub-${i + 1}`;
+                const lastScore = savedScores[setKey];
+
+                btn.className = "subset-btn p-3 bg-white border border-slate-200 rounded-xl text-sm hover:border-blue-500 font-bold text-slate-600 shadow-sm";
+                btn.innerHTML = `<span>${i + 1}</span>`;
+
+                // ถ้าเคยทำแล้ว ให้แสดงคะแนน
+                if (lastScore !== undefined) {
+                    const badgeClass = lastScore >= 5 ? 'passed' : '';
+                    btn.innerHTML += `<span class="score-badge ${badgeClass}">${lastScore}/10</span>`;
+                }
+
+                btn.onclick = () => {
+                    currentInfo.activeSetKey = setKey; // เก็บไว้บันทึกคะแนนตอนจบ
+                    startQuiz('serial', i);
+                };
                 subSetsDiv.appendChild(btn);
             }
         }
@@ -187,7 +347,7 @@
             } else {
                 currentQuizSet = allData.slice(pageIndex * 10, (pageIndex * 10) + 10);
             }
-            
+
             currentIndex = 0; score = 0;
             document.getElementById('sub-menu-ui').classList.add('hidden');
             document.getElementById('quiz-ui').classList.remove('hidden');
@@ -200,7 +360,7 @@
             document.getElementById('q-text').innerText = q.question;
             const container = document.getElementById('options-container');
             container.innerHTML = '';
-            
+
             ['ก.', 'ข.', 'ค.', 'ง.'].forEach((label, i) => {
                 const btn = document.createElement('button');
                 btn.className = "option-btn w-full text-left p-4 border border-slate-200 rounded-xl hover:bg-slate-50 flex items-start";
@@ -242,6 +402,13 @@
             document.getElementById('quiz-ui').classList.add('hidden');
             document.getElementById('result-ui').classList.remove('hidden');
             document.getElementById('final-score').innerText = score;
+
+            // บันทึกคะแนนลงระบบ Badge (ถ้าไม่ใช่โหมดสุ่ม)
+            if (currentInfo.activeSetKey) {
+                let savedScores = JSON.parse(localStorage.getItem('quiz_scores') || '{}');
+                savedScores[currentInfo.activeSetKey] = score;
+                localStorage.setItem('quiz_scores', JSON.stringify(savedScores));
+            }
         }
 
         // ระบบประวัติ
@@ -260,27 +427,77 @@
         function loadHistory() {
             const history = JSON.parse(localStorage.getItem('quiz_history') || '[]');
             if (history.length === 0) return;
+
             document.getElementById('history-section').classList.remove('hidden');
-            const list = document.getElementById('history-list');
-            list.innerHTML = history.map(h => `
-                <div class="p-3 border-b border-slate-100 flex justify-between items-start gap-4">
-                    <div class="flex-1">
-                        <div class="text-[10px] text-slate-400">${h.set} (${h.sub}) - ${h.date}</div>
-                        <div class="font-medium text-slate-700">${h.q}</div>
+            const container = document.getElementById('history-list');
+
+            // สร้างโครง Table เปล่าๆ
+            // เปลี่ยนโครงสร้างตารางใน innerHTML
+            container.innerHTML = `
+                <div class="mt-4 w-full overflow-hidden"> 
+                    <div class="overflow-x-auto"> 
+                        <table id="history-table" class="display responsive wrap w-full text-sm" style="width:100%">
+                            <thead>
+                                <tr class="bg-slate-50">
+                                    <th class="all">วันที่</th>
+                                    <th class="all">ชุด/โหมด</th>
+                                    <th class="min-tablet">คำถาม</th>
+                                    <th class="all">Ans</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
                     </div>
-                    <div class="font-bold ${h.status.includes('ถูก') ? 'text-emerald-500' : 'text-red-500'}">${h.status}</div>
                 </div>
-            `).join('');
+            `;
+
+            // เตรียมข้อมูลลงตาราง
+            const tableData = history.map(h => [
+                h.date.split(' ')[0],
+                h.sub,
+                h.q,
+                h.status.includes('ถูก')
+                    ? '<span class="status-badge bg-emerald-100 text-emerald-700">✅</span>'
+                    : '<span class="status-badge bg-red-100 text-red-700">❌</span>'
+            ]);
+
+            // Initial DataTable
+            if ($.fn.DataTable.isDataTable('#history-table')) {
+                $('#history-table').DataTable().destroy();
+            }
+
+            $('#history-table').DataTable({
+                data: tableData,
+                responsive: true,
+                pageLength: 5, // แสดงทีละ 5 แถวจะได้ไม่ยาว
+                lengthMenu: [5, 10, 25, 50],
+                language: {
+                    search: "ค้นหาในประวัติ:",
+                    lengthMenu: "แสดง _MENU_ รายการ",
+                    info: "แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ",
+                    paginate: {
+                        next: "ถัดไป",
+                        previous: "ก่อนหน้า"
+                    }
+                },
+                autoWidth: false, // บังคับให้ใช้ CSS คุมความกว้างแทน
+                columnDefs: [
+                    { width: '20%', targets: 0 }, // วันที่
+                    { width: '20%', targets: 1 }, // ชุด
+                    { width: '50%', targets: 2, className: 'text-wrap' }, // คำถาม (ให้พื้นที่เยอะและ Wrap)
+                    { width: '10%', targets: 3, className: 'dt-center' }  // ผล
+                ],
+            });
         }
 
         function exportToExcel() {
             const history = JSON.parse(localStorage.getItem('quiz_history') || '[]');
-            
+
             if (history.length === 0) {
                 alert("ไม่มีข้อมูลประวัติสำหรับส่งออก");
                 return;
             }
-        
+
             // จัดรูปแบบข้อมูลใหม่สำหรับ Excel
             const dataForExcel = history.map((item, index) => ({
                 "ลำดับ": history.length - index,
@@ -290,28 +507,28 @@
                 "คำถาม": item.q,
                 "ผลลัพธ์": item.status.includes('ถูก') ? 'ถูกต้อง' : 'ผิด',
             }));
-        
+
             // สร้าง Worksheet
             const worksheet = XLSX.utils.json_to_sheet(dataForExcel);
-            
+
             // ตั้งค่าความกว้างของคอลัมน์ (ประมาณการ)
             const wscols = [
-                {wch: 6},  // ลำดับ
-                {wch: 20}, // วันที่
-                {wch: 35}, // ชุดข้อสอบ
-                {wch: 15}, // ชุดย่อย
-                {wch: 60}, // คำถาม
-                {wch: 10}  // ผลลัพธ์
+                { wch: 6 },  // ลำดับ
+                { wch: 20 }, // วันที่
+                { wch: 35 }, // ชุดข้อสอบ
+                { wch: 15 }, // ชุดย่อย
+                { wch: 60 }, // คำถาม
+                { wch: 10 }  // ผลลัพธ์
             ];
             worksheet['!cols'] = wscols;
-        
+
             // สร้าง Workbook
             const workbook = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(workbook, worksheet, "ประวัติการทำข้อสอบ");
-        
+
             // สร้างชื่อไฟล์ตามวันที่ปัจจุบัน
             const fileName = `สรุปคะแนน_ชายกลัวดอกพิกุล_${new Date().getTime()}.xlsx`;
-        
+
             // ดาวน์โหลดไฟล์
             XLSX.writeFile(workbook, fileName);
         }
@@ -320,4 +537,5 @@
         window.onload = initMenu;
     </script>
 </body>
+
 </html>
