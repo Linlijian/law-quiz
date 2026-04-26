@@ -191,7 +191,7 @@
             </div>
             <div class="flex items-center space-x-2">
                 <span class="h-2 w-2 bg-emerald-500 rounded-full animate-pulse"></span>
-                <span class="text-[10px] text-slate-400 font-mono">SYSTEM ACTIVE v2.0</span>
+                <span class="text-[10px] text-slate-400 font-mono">SYSTEM ACTIVE v3.0</span>
             </div>
         </div>
     </div>
@@ -254,6 +254,23 @@
                 <button onclick="location.reload()" class="text-xs text-slate-400">ยกเลิก</button>
             </div>
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-6">
+                <div class="flex justify-center gap-2 mb-4 no-print">
+                    <button id="btn-double" onclick="useDoubleChance()"
+                        class="text-[10px] bg-amber-100 text-amber-700 px-3 py-1 rounded-full border border-amber-200 hover:bg-amber-200 font-bold transition-all">
+                        ✌️ ตอบได้ 2 ครั้ง
+                    </button>
+                    <button id="btn-cut1" onclick="useCutOption(1)"
+                        class="text-[10px] bg-purple-100 text-purple-700 px-3 py-1 rounded-full border border-purple-200 hover:bg-purple-200 font-bold transition-all">
+                        ✂️ ตัด 1 ตัวเลือก
+                    </button>
+                    <button id="btn-cut2" onclick="useCutOption(2)"
+                        class="text-[10px] bg-rose-100 text-rose-700 px-3 py-1 rounded-full border border-rose-200 hover:bg-rose-200 font-bold transition-all">
+                        🔥 ตัด 2 ตัวเลือก
+                    </button>
+                </div>
+                <p class="text-[10px] text-rose-500 text-center mt-2 font-medium animate-pulse">
+                    * หากใช้ตัวช่วย ข้อนี้จะถือเป็น 0 คะแนนทันที
+                </p>
                 <h2 id="q-text" class="text-xl font-semibold text-slate-800 mb-6"></h2>
                 <div id="options-container" class="space-y-3"></div>
                 <div id="explanation-box"
@@ -281,6 +298,16 @@
         let currentIndex = 0;
         let score = 0;
         let currentInfo = { title: "", file: "", type: "" };
+        let isLifelineUsed = false; // ข้อนี้ใช้ตัวช่วยไปหรือยัง
+        let activeLifelines = { doubleChance: false }; // สถานะเฉพาะของแต่ละข้อ
+
+        // สถานะการใช้ตัวช่วย (Reset เฉพาะตอนเริ่มโหมดใหม่ 10 ข้อ)
+        let sessionLifelines = {
+            double: false,
+            cut1: false,
+            cut2: false
+        };
+        let isDoubleChanceActive = false; // สถานะเฉพาะข้อที่กำลังทำ
 
         // โหลดรายการจาก sets.json
         async function initMenu() {
@@ -348,6 +375,21 @@
                 currentQuizSet = allData.slice(pageIndex * 10, (pageIndex * 10) + 10);
             }
 
+            // Reset โควตาตัวช่วยใหม่ทั้งหมด
+            sessionLifelines = { double: false, cut1: false, cut2: false };
+            isDoubleChanceActive = false;
+
+            // Reset UI ปุ่มตัวช่วยให้กลับมาสดใส
+            const btnIds = ['btn-double', 'btn-cut1', 'btn-cut2'];
+            btnIds.forEach(id => {
+                const btn = document.getElementById(id);
+                btn.classList.remove('opacity-30', 'cursor-not-allowed');
+                // คืนค่าฟังก์ชัน onclick (ระบุให้ตรงกับของเดิม)
+                if (id === 'btn-double') btn.onclick = useDoubleChance;
+                if (id === 'btn-cut1') btn.onclick = () => useCutOption(1);
+                if (id === 'btn-cut2') btn.onclick = () => useCutOption(2);
+            });
+
             currentIndex = 0; score = 0;
             document.getElementById('sub-menu-ui').classList.add('hidden');
             document.getElementById('quiz-ui').classList.remove('hidden');
@@ -355,6 +397,9 @@
         }
 
         function showQuestion() {
+            isLifelineUsed = false;
+            activeLifelines.doubleChance = false;
+
             const q = currentQuizSet[currentIndex];
             document.getElementById('q-number').innerText = `ข้อที่ ${currentIndex + 1}/10 (${currentInfo.type})`;
             document.getElementById('q-text').innerText = q.question;
@@ -370,26 +415,6 @@
             });
             document.getElementById('explanation-box').classList.add('hidden');
             document.getElementById('next-btn').classList.add('hidden');
-        }
-
-        function checkAnswer(idx, btn) {
-            const q = currentQuizSet[currentIndex];
-            const isCorrect = idx === q.answer;
-            const buttons = document.querySelectorAll('.option-btn');
-            buttons.forEach(b => b.disabled = true);
-
-            if (isCorrect) {
-                btn.classList.add('bg-emerald-50', 'border-emerald-500', 'text-emerald-700');
-                score++;
-            } else {
-                btn.classList.add('bg-red-50', 'border-red-500', 'text-red-700');
-                buttons[q.answer].classList.add('bg-emerald-50', 'border-emerald-500');
-            }
-
-            saveHistory(q.question, isCorrect);
-            document.getElementById('explanation-text').innerText = q.explanation || "ไม่มีคำอธิบาย";
-            document.getElementById('explanation-box').classList.remove('hidden');
-            document.getElementById('next-btn').classList.remove('hidden');
         }
 
         function handleNext() {
@@ -531,6 +556,105 @@
 
             // ดาวน์โหลดไฟล์
             XLSX.writeFile(workbook, fileName);
+        }
+
+        // ฟังก์ชันสุ่มตัดตัวเลือกที่ผิด
+        function useCutOption(count) {
+            const lifelineKey = count === 1 ? 'cut1' : 'cut2';
+            const btnId = count === 1 ? 'btn-cut1' : 'btn-cut2';
+
+            if (sessionLifelines[lifelineKey]) return; // ถ้าเคยใช้ในชุดนี้แล้ว ไม่ทำอะไร
+
+            const q = currentQuizSet[currentIndex];
+            const incorrectIndexes = [];
+            q.options.forEach((_, i) => {
+                if (i !== q.answer) incorrectIndexes.push(i);
+            });
+
+            const toCut = incorrectIndexes.sort(() => 0.5 - Math.random()).slice(0, count);
+            const buttons = document.querySelectorAll('.option-btn');
+
+            toCut.forEach(idx => {
+                buttons[idx].style.opacity = "0.3";
+                buttons[idx].style.pointerEvents = "none";
+                buttons[idx].querySelector('span:last-child').style.textDecoration = "line-through";
+            });
+
+            // บันทึกว่าใช้ไปแล้ว
+            sessionLifelines[lifelineKey] = true;
+            q.noScore = true; // ข้อนี้ไม่ได้คะแนน
+            updateLifelineUI(); // อัปเดตหน้าตาปุ่ม
+        }
+
+        // ฟังก์ชันตอบได้ 2 ครั้ง
+        function useDoubleChance() {
+            if (sessionLifelines.double) return;
+
+            activeLifelines.doubleChance = true;
+            isLifelineUsed = true;
+            isDoubleChanceActive = true;
+            sessionLifelines.double = true;
+            currentQuizSet[currentIndex].noScore = true;
+
+            updateLifelineUI();
+        }
+
+        // แก้ไขฟังก์ชัน checkAnswer เดิมเล็กน้อย
+        function checkAnswer(idx, btn) {
+            const q = currentQuizSet[currentIndex];
+            const isCorrect = idx === q.answer;
+
+            if (activeLifelines.doubleChance && !isCorrect) {
+                // ถ้าใช้ "ตอบ 2 ครั้ง" แล้วตอบผิดครั้งแรก
+                btn.classList.add('bg-slate-100', 'opacity-50');
+                btn.disabled = true;
+                btn.onclick = null;
+                activeLifelines.doubleChance = false; // ใช้สิทธิ์ไปแล้ว
+                return; // จบฟังก์ชัน ไม่แสดงเฉลย
+            }
+
+            const buttons = document.querySelectorAll('.option-btn');
+            buttons.forEach(b => b.disabled = true);
+
+            if (isCorrect) {
+                btn.classList.add('bg-emerald-50', 'border-emerald-500', 'text-emerald-700');
+                // บวกคะแนนเฉพาะกรณีที่ไม่ได้ใช้ตัวช่วย
+                if (!q.noScore) score++;
+            } else {
+                btn.classList.add('bg-red-50', 'border-red-500', 'text-red-700');
+                buttons[q.answer].classList.add('bg-emerald-50', 'border-emerald-500');
+            }
+
+            // แสดง Remark ในกล่องคำอธิบาย
+            const expBox = document.getElementById('explanation-box');
+            const expText = document.getElementById('explanation-text');
+
+            let remark = "";
+            if (q.noScore) {
+                remark = `<div class="mb-2 text-rose-600 font-bold border-b border-rose-200 pb-1">
+                    ⚠️ ข้อนี้ไม่ได้คะแนน (เนื่องจากใช้ตัวช่วย)
+                  </div>`;
+            }
+
+            saveHistory(q.question, isCorrect);
+            expText.innerHTML = remark + (q.explanation || "ไม่มีคำอธิบาย");
+            expBox.classList.remove('hidden');
+        }
+
+        // ฟังก์ชันอัปเดตสถานะปุ่ม (ทำให้จางหรือกดไม่ได้เมื่อใช้โควตาหมด)
+        function updateLifelineUI() {
+            if (sessionLifelines.double) {
+                document.getElementById('btn-double').classList.add('opacity-30', 'cursor-not-allowed');
+                document.getElementById('btn-double').onclick = null;
+            }
+            if (sessionLifelines.cut1) {
+                document.getElementById('btn-cut1').classList.add('opacity-30', 'cursor-not-allowed');
+                document.getElementById('btn-cut1').onclick = null;
+            }
+            if (sessionLifelines.cut2) {
+                document.getElementById('btn-cut2').classList.add('opacity-30', 'cursor-not-allowed');
+                document.getElementById('btn-cut2').onclick = null;
+            }
         }
 
         function backToMain() { location.reload(); }
