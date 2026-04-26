@@ -639,6 +639,7 @@
             saveHistory(q.question, isCorrect);
             expText.innerHTML = remark + (q.explanation || "ไม่มีคำอธิบาย");
             expBox.classList.remove('hidden');
+            document.getElementById('next-btn').classList.remove('hidden');
         }
 
         // ฟังก์ชันอัปเดตสถานะปุ่ม (ทำให้จางหรือกดไม่ได้เมื่อใช้โควตาหมด)
