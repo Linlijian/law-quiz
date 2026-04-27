@@ -178,6 +178,54 @@
                 display: none;
             }
         }
+
+        /* เอฟเฟกต์วิบวับสำหรับ Dashboard */
+        .shine-effect {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .shine-effect::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -60%;
+            width: 20%;
+            height: 200%;
+            background: rgba(255, 255, 255, 0.4);
+            transform: rotate(30deg);
+            transition: none;
+            animation: shine-move 3s infinite;
+        }
+
+        @keyframes shine-move {
+            0% {
+                left: -60%;
+            }
+
+            20% {
+                left: 120%;
+            }
+
+            100% {
+                left: 120%;
+            }
+        }
+
+        /* เอฟเฟกต์เรืองแสงสำหรับคนสอบติด (80%+) */
+        .glow-gold {
+            box-shadow: 0 0 20px rgba(251, 191, 36, 0.4);
+            border: 2px solid #fbbf24 !important;
+            background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+        }
+
+        .text-gold-shine {
+            background: linear-gradient(to right, #b45309, #d97706, #b45309);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-size: 200% auto;
+            animation: shine 3s linear infinite;
+        }
     </style>
 </head>
 
@@ -191,7 +239,7 @@
             </div>
             <div class="flex items-center space-x-2">
                 <span class="h-2 w-2 bg-emerald-500 rounded-full animate-pulse"></span>
-                <span class="text-[10px] text-slate-400 font-mono">SYSTEM ACTIVE v3.0</span>
+                <span class="text-[10px] text-slate-400 font-mono">SYSTEM ACTIVE v4.0</span>
             </div>
         </div>
     </div>
@@ -233,6 +281,7 @@
                 ← กลับหน้าหลัก
             </button>
             <h2 id="selected-title" class="text-xl font-bold text-slate-800"></h2>
+            <div id="summary-dashboard"></div>
 
             <div class="grid grid-cols-1 gap-3">
                 <div onclick="startQuiz('random')"
@@ -344,27 +393,86 @@
             subSetsDiv.innerHTML = '';
             const totalSubSets = Math.ceil(allData.length / 10);
 
+            // --- ส่วนคำนวณเปอร์เซ็นต์รวม ---
+            let totalScoreObtained = 0;
+            let setsPlayed = 0;
+
             for (let i = 0; i < totalSubSets; i++) {
-                const btn = document.createElement('button');
-                // สร้าง Unique ID สำหรับชุดนี้ เช่น "ชุดที่ 1-ชุดย่อย 1"
                 const setKey = `${currentInfo.title}-sub-${i + 1}`;
-                const lastScore = savedScores[setKey];
-
-                btn.className = "subset-btn p-3 bg-white border border-slate-200 rounded-xl text-sm hover:border-blue-500 font-bold text-slate-600 shadow-sm";
-                btn.innerHTML = `<span>${i + 1}</span>`;
-
-                // ถ้าเคยทำแล้ว ให้แสดงคะแนน
-                if (lastScore !== undefined) {
-                    const badgeClass = lastScore >= 5 ? 'passed' : '';
-                    btn.innerHTML += `<span class="score-badge ${badgeClass}">${lastScore}/10</span>`;
+                if (savedScores[setKey] !== undefined) {
+                    totalScoreObtained += savedScores[setKey];
+                    setsPlayed++;
                 }
 
+                // (ส่วนการสร้างปุ่มเลขชุดเดิม...)
+                const btn = document.createElement('button');
+                const lastScore = savedScores[setKey];
+                btn.className = "subset-btn p-3 bg-white border border-slate-200 rounded-xl text-sm relative font-bold shadow-sm hover:border-blue-500";
+                btn.innerHTML = `<span>${i + 1}</span>`;
+                if (lastScore !== undefined) {
+                    const color = lastScore >= 6 ? 'bg-emerald-500' : 'bg-rose-500'; // 6 เต็ม 10 คือผ่าน
+                    btn.innerHTML += `<span class="absolute -top-1 -right-1 ${color} text-white text-[9px] px-1.5 py-0.5 rounded-full border-2 border-white">${lastScore}/10</span>`;
+                }
                 btn.onclick = () => {
-                    currentInfo.activeSetKey = setKey; // เก็บไว้บันทึกคะแนนตอนจบ
+                    currentInfo.activeSetKey = setKey;
                     startQuiz('serial', i);
                 };
                 subSetsDiv.appendChild(btn);
             }
+
+            // --- แสดงผล Dashboard สรุปคะแนนรวม ---
+            renderSummaryDashboard(totalScoreObtained, setsPlayed);
+        }
+
+        function renderSummaryDashboard(totalPoints, setsCount) {
+            const dashboardContainer = document.getElementById('summary-dashboard');
+            if (setsCount === 0) {
+                dashboardContainer.innerHTML = `<div class="text-xs text-slate-400 text-center py-2 italic">ยังไม่มีประวัติการทำในชุดนี้</div>`;
+                return;
+            }
+
+            const maxPointsPossible = setsCount * 10;
+            const percentage = Math.round((totalPoints / maxPointsPossible) * 100);
+
+            let statusText = "";
+            let cardClass = "shine-effect "; // ใส่พื้นฐานวิบวับทุกอัน
+            let textClass = "font-black text-2xl ";
+            let emoji = "";
+
+            if (percentage >= 80) {
+                statusText = "สอบติดแน่นอน!";
+                cardClass += "glow-gold border-amber-300"; // ทองเรืองแสง
+                textClass += "text-gold-shine"; // ข้อความทองวิบวับ
+                emoji = "🏆";
+            } else if (percentage >= 60) {
+                statusText = "ผ่านเกณฑ์";
+                cardClass += "bg-blue-50 text-blue-700 border-blue-200";
+                emoji = "✅";
+            } else {
+                statusText = "ตก (ต้องทบทวน)";
+                cardClass += "bg-rose-50 text-rose-700 border-rose-200";
+                emoji = "❌";
+            }
+
+            dashboardContainer.innerHTML = `
+                <div class="p-5 rounded-2xl border-2 ${cardClass} mb-6 animate-pop shadow-sm">
+                    <div class="flex justify-between items-center mb-3">
+                        <div>
+                            <div class="text-[10px] uppercase font-bold opacity-60 tracking-widest">Global Performance</div>
+                            <div class="${textClass}">${emoji} ${percentage}%</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-sm font-bold">${statusText}</div>
+                            <div class="text-[10px] opacity-60 font-medium">จาก ${setsCount} ชุดย่อย</div>
+                        </div>
+                    </div>
+                    <div class="w-full bg-slate-200/50 rounded-full h-3 p-0.5 border border-slate-300/30">
+                        <div class="h-full rounded-full transition-all duration-1000 ${percentage >= 80 ? 'bg-amber-500' : (percentage >= 60 ? 'bg-blue-500' : 'bg-rose-500')}" 
+                            style="width: ${percentage}%">
+                        </div>
+                    </div>
+                </div>
+            `;
         }
 
         function startQuiz(type, pageIndex = 0) {
